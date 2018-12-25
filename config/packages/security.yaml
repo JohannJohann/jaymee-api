@@ -1,0 +1,20 @@
+security:
+    providers:
+        users:
+            entity:
+                class: App\Entity\User
+                property: username
+
+    firewalls:
+        main:
+            anonymous: ~
+            # form_login:
+            #     login_path: login_success
+            #     check_path: login_check
+            #     always_use_default_target_path: true
+            #     default_target_path: login_success
+
+    encoders:
+        App\Entity\User:
+            algorithm: bcrypt
+            cost: 12

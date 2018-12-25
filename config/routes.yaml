@@ -1,0 +1,18 @@
+#index:
+#    path: /
+#    controller: App\Controller\DefaultController::index
+
+user_routes_preflight_validation:
+    path: /user/{anything}
+    controller: App\Controller\DefaultController::validatePreflight
+    methods:    [OPTIONS]
+
+quizz_routes_preflight_validation:
+    path: /quizz/{anything}
+    controller: App\Controller\DefaultController::validatePreflight
+    methods:    [OPTIONS]
+
+photos_routes_preflight_validation:
+    path: /photo/{anything}
+    controller: App\Controller\DefaultController::validatePreflight
+    methods:    [OPTIONS]
