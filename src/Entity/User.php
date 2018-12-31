@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Bridge\Doctrine\Security\User\UserLoaderInterface;
 
 use App\Entity\User;
-use App\Entity\Key;
+use App\Entity\MediaKey;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\UserRepository")
@@ -67,13 +67,13 @@ class User implements UserInterface
     private $ownImages;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\Key", mappedBy="owner")
+     * @ORM\OneToMany(targetEntity="App\Entity\MediaKey", mappedBy="owner")
      * @ORM\JoinColumn(nullable=false)
      */
     private $unlockedKeys;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\Key", mappedBy="target")
+     * @ORM\OneToMany(targetEntity="App\Entity\MediaKey", mappedBy="target")
      * @ORM\JoinColumn(nullable=false)
      */
     private $sharedKeys;
@@ -88,6 +88,11 @@ class User implements UserInterface
      * @ORM\Column(type="text", nullable=true)
      */
     private $token;
+
+    /**
+     * @ORM\Column(type="datetime", nullable=true)
+     */
+    public $last_activity_at;
 
     public function __construct()
     {
@@ -202,14 +207,14 @@ class User implements UserInterface
     }
 
     /**
-     * @return Collection|Key[]
+     * @return Collection|MediaKey[]
      */
     public function getUnlockedKeys(): Collection
     {
         return $this->unlockedKeys;
     }
 
-    public function addUnlockedKey(Key $unlockedKey): self
+    public function addUnlockedKey(MediaKey $unlockedKey): self
     {
         if (!$this->unlockedKeys->contains($unlockedKey)) {
             $this->unlockedKeys[] = $unlockedKey;
@@ -219,7 +224,7 @@ class User implements UserInterface
         return $this;
     }
 
-    public function removeUnlockedKey(Key $unlockedKey): self
+    public function removeUnlockedKey(MediaKey $unlockedKey): self
     {
         if ($this->unlockedKeys->contains($unlockedKey)) {
             $this->unlockedKeys->removeElement($unlockedKey);
@@ -233,7 +238,7 @@ class User implements UserInterface
     }
 
     /**
-     * @return Collection|Key[]
+     * @return Collection|MediaKey[]
      */
     public function getSharedKeys(): Collection
     {
@@ -243,19 +248,44 @@ class User implements UserInterface
     /**
      * @return int
      */
-    public function getSharedKeysFor(User $user): int
+    public function countSharedKeysFor(User $user): int
     {
-        if(!$this->getSharedKeys()->isEmpty()){
-            return 5;//$this->sharedKeys->get(0)->getQuantity();
+        if(!$this->sharedKeys->isEmpty()){
+            $matchingKey =  $this->sharedKeys->filter(function(MediaKey $key) use ($user) {
+                        return $key->getOwner() == $user;
+                    });
+            if(!$matchingKey->isEmpty()){
+                return $matchingKey->first()->getQuantity();
+            } else {
+                return 0;
+            }
         }
         else {
-            return 0;
-        }//->filter(function(Key $key) use ($user) {
-        //     return $key->getTarget() == $user;
-        // });
+            return 0 ;
+        }
     }
 
-    public function addSharedKey(Key $sharedKey): self
+    /**
+     * @return MediaKey
+     */
+    public function getSharedKeysFor(User $user): MediaKey
+    {
+        if(!$this->sharedKeys->isEmpty()){
+            $matchingKey =  $this->sharedKeys->filter(function(MediaKey $key) use ($user) {
+                        return $key->getOwner() == $user;
+                    });
+            if(!$matchingKey->isEmpty()){
+                return $matchingKey->first();
+            } else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+
+    public function addSharedKey(MediaKey $sharedKey): self
     {
         if (!$this->sharedKeys->contains($sharedKey)) {
             $this->sharedKeys[] = $sharedKey;
@@ -265,7 +295,7 @@ class User implements UserInterface
         return $this;
     }
 
-    public function removeSharedKey(Key $sharedKey): self
+    public function removeSharedKey(MediaKey $sharedKey): self
     {
         if ($this->sharedKeys->contains($sharedKey)) {
             $this->sharedKeys->removeElement($sharedKey);
@@ -352,6 +382,18 @@ class User implements UserInterface
     public function setToken(?string $token): self
     {
         $this->token = $token;
+
+        return $this;
+    }
+
+    public function getLastActivityAt(): ?\DateTimeInterface
+    {
+        return $this->last_activity_at;
+    }
+
+    public function setLastActivityAt(?\DateTimeInterface $last_activity_at): self
+    {
+        $this->last_activity_at = $last_activity_at;
 
         return $this;
     }

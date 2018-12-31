@@ -2,25 +2,25 @@
 
 namespace App\Repository;
 
-use App\Entity\Keys;
+use App\Entity\MediaKey;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
 /**
- * @method Keys|null find($id, $lockMode = null, $lockVersion = null)
- * @method Keys|null findOneBy(array $criteria, array $orderBy = null)
- * @method Keys[]    findAll()
- * @method Keys[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method Key|null find($id, $lockMode = null, $lockVersion = null)
+ * @method Key|null findOneBy(array $criteria, array $orderBy = null)
+ * @method Key[]    findAll()
+ * @method Key[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class KeysRepository extends ServiceEntityRepository
+class MediaKeyRepository extends ServiceEntityRepository
 {
     public function __construct(RegistryInterface $registry)
     {
-        parent::__construct($registry, Keys::class);
+        parent::__construct($registry, MediaKey::class);
     }
 
     // /**
-    //  * @return Keys[] Returns an array of Keys objects
+    //  * @return Key[] Returns an array of Key objects
     //  */
     /*
     public function findByExampleField($value)
@@ -37,7 +37,7 @@ class KeysRepository extends ServiceEntityRepository
     */
 
     /*
-    public function findOneBySomeField($value): ?Keys
+    public function findOneBySomeField($value): ?Key
     {
         return $this->createQueryBuilder('k')
             ->andWhere('k.exampleField = :val')

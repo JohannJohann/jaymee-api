@@ -19,6 +19,7 @@ use Symfony\Component\Security\Core\Encoder\MessageDigestPasswordEncoder;
 use App\Controller\ImageController;
 use App\Entity\User;
 use App\Entity\Image;
+use App\Entity\Quizz;
 
 /**
  * @Route("/user")
@@ -89,8 +90,11 @@ class UserController extends AbstractController
         $response = new JsonResponse();
 
         $user = $uRepository->findOneBy(array('username'=>$request->request->get("_username")));
+        if($user == null){
+            return $response;
+        }
+
         $attempt = $this->defaultEncoder->encodePassword($request->request->get("_password"), $user->getSalt());
-        
         if($attempt == $user->getPassword()){
             $token = $this->randomString(100);
             $user->setToken($token);
@@ -98,12 +102,11 @@ class UserController extends AbstractController
             $userWithToken = [
                 'username' => $user->getUsername(),
                 'profile_pic' => $user->getProfilePic(),
-                'token' => $token
+                'token' => $token,
+                'hasFeed' => !$user->getFollowing()->isEmpty(),
             ];
             $response->setData($userWithToken);
-        } else {
-            $response->setData(null);
-        }
+        } 
         return $response;
     }
 
@@ -116,8 +119,10 @@ class UserController extends AbstractController
 
         $token = $request->headers->get('Authorization');
         $user = $uRepository->findOneByToken($token);
+
         if($user !== null)
         {
+            $user->hasFeed = !$user->getFollowing()->isEmpty();
             return new JsonResponse($user);
         }
         else {
@@ -131,6 +136,7 @@ class UserController extends AbstractController
     public function getUserData(Request $request, $id){
         $em = $this->getDoctrine()->getManager();
         $uRepository = $em->getRepository(User::class);
+        $qRepository = $em->getRepository(Quizz::class);
 
         $token = $request->headers->get('Authorization');
         $loggedUser = $uRepository->findOneByToken($token);
@@ -140,14 +146,16 @@ class UserController extends AbstractController
         if($user !== null)
         {
             $user->isFollowed = $loggedUser->getFollowing()->contains($user);
-            $user->keysForMe = $user->getSharedKeysFor($loggedUser);
+            $user->keysForMe = $user->countSharedKeysFor($loggedUser);
+            $user->hasQuizzForMe = !empty($qRepository->getRandom($loggedUser, $user));
             $user->photos = $user->getOwnImages()->filter(function(Image $image) use ($loggedUser) {
                 return !$image->getViewedBy()->contains($loggedUser);
-            })->map(function(Image $image){
+            })
+            ->map(function(Image $image){
                 $image->viewedBy = $image->getViewedBy()->toArray();
                 return $image;
-            })->toArray();
-
+            })
+            ->getValues();
             return new JsonResponse($user);
         }
         else {
@@ -226,6 +234,29 @@ class UserController extends AbstractController
             $em->flush();
         }
         return $response;
+    }
+
+    /**
+     * @Route("/feed", name="get_feed", methods={"GET"})
+     */
+    public function getFeed(Request $request){
+        $em = $this->getDoctrine()->getManager();
+        $uRepository = $em->getRepository(User::class);
+        
+        $token = $request->headers->get('Authorization');
+        $user = $uRepository->findOneByToken($token);
+        $following = $user->getFollowing()->toArray();
+        usort($following, function($a, $b) {
+            if($a->getLastActivityAt() == null){
+                return -1;
+            }
+            if($b->getLastActivityAt() == null){
+                return 1;
+            }
+            return ($a->getLastActivityAt() < $b->getLastActivityAt()) ? -1 : 1;
+        });
+
+        return new JsonResponse(array_slice($following, 0, 10));
     }
 
     // UTILS

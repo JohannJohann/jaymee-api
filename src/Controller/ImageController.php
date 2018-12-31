@@ -54,9 +54,41 @@ class ImageController extends AbstractController
         $image->setCreatedAt( new \Datetime());
         $image->setOwner($user);
 
+        $user->setLastActivityAt(new \DateTime());
+
         $em->persist($image);
         $em->flush();
 
         return new JsonResponse($image->getId());
+    }
+
+    /**
+     * @Route("/unlock", name="unlock_photo", methods={"POST"})
+     */
+    public function unlock(Request $request): JsonResponse
+    {
+        $em = $this->getDoctrine()->getManager();
+        $uRepository = $em->getRepository(User::class);
+        $iRepository = $em->getRepository(Image::class);
+        $user = $uRepository->findOneByToken($request->headers->get('Authorization'));
+        
+        $photo = $iRepository->find($request->request->get('photoId'));
+        if($photo){
+            $canUnlock = $photo->getOwner()->countSharedKeysFor($user) >= $photo->getCost();
+            if($canUnlock){
+                $key  = $photo->getOwner()->getSharedKeysFor($user);
+                $key->setQuantity($key->getQuantity() - $photo->getCost());
+                $photo->addViewedBy($user);
+
+                $imagePath = self::PRIVATE_PHOTO_STORAGE.$photo->getOwner()->getId().'/'.$photo->getFilename();
+                $image = base64_encode(file_get_contents($imagePath));
+                $em->flush();
+                return new JsonResponse(array('image' => $image));    
+            } else {
+                return new JsonResponse();
+            }
+        } else {
+            return new JsonResponse();
+        }
     }
 }

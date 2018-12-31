@@ -16,7 +16,7 @@ class Quizz
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
      */
-    private $id;
+    public $id;
 
     /**
      * @ORM\Column(type="string", length=255)
@@ -49,10 +49,10 @@ class Quizz
     public $successes;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\User", inversedBy="ownQuizzes")
+     * @ORM\ManyToOne(targetEntity="App\Entity\User", inversedBy="ownQuizzes", fetch="EAGER")
      * @ORM\JoinColumn(nullable=false)
      */
-    private $owner;
+    public $owner;
     
     /**
      * @ORM\ManyToMany(targetEntity="App\Entity\User")
