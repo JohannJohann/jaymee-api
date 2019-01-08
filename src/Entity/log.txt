@@ -1,4 +1,0 @@
-objectArray
-(
-    [0] => 1
-)

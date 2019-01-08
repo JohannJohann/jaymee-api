@@ -1,6 +1,7 @@
 <?php
 
 namespace App;
+header("Access-Control-Allow-Origin: *");
 
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
