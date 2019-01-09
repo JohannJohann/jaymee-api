@@ -36,6 +36,20 @@ class ImageRepository extends ServiceEntityRepository
         return $results;
     }
 
+    /**
+     * @return Image[] Returns an array of Image objects - the ones outdated
+    */
+    public function getExpired() {
+        $limit = (new \DateTime())->sub(new \DateInterval('P1D'));
+        $results = $this->createQueryBuilder('i')
+        ->andWhere('i.created_at <= :limit')
+        ->setParameter('limit', $limit)
+        ->getQuery()
+        ->getResult();
+
+        return $results;
+    }
+
     // /**
     //  * @return Image[] Returns an array of Image objects
     //  */
