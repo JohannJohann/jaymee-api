@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Entity\Image;
 use App\Entity\User;
+use App\Service\FirebasePushService;
 
 /**
  * @Route("/photo")
@@ -37,7 +38,7 @@ class ImageController extends AbstractController
     /**
      * @Route("/new", name="add_new_photo", methods={"POST"})
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request, FirebasePushService $pushService): JsonResponse
     {
         $em = $this->getDoctrine()->getManager();
         $uRepository = $em->getRepository(User::class);
@@ -59,6 +60,16 @@ class ImageController extends AbstractController
         $em->persist($image);
         $em->flush();
 
+        foreach($user->getFollowedBy() as $follower){
+            if(!is_null($follower->getFcmToken())){
+                $informations = array(
+                    "source" => $user->getUsername(),
+                    "target" => $follower->getFcmToken(),
+                    "code" => 1,
+                );
+                $pushService->sendPushNotification($informations);
+            }
+        }
         return new JsonResponse($image->getId());
     }
 

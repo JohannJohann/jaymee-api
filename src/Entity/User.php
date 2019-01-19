@@ -79,10 +79,16 @@ class User implements UserInterface
     private $sharedKeys;
 
        /**
-     * @ORM\ManyToMany(targetEntity="App\Entity\User")
+     * @ORM\ManyToMany(targetEntity="App\Entity\User", inversedBy="followedBy")
      * @ORM\JoinTable(name="user_follows")
      */
     private $following;
+
+      /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\User", mappedBy="following")
+     * @ORM\JoinTable(name="user_follows")
+     */
+    public $followedBy;
 
     /**
      * @ORM\Column(type="text", nullable=true)
@@ -94,6 +100,11 @@ class User implements UserInterface
      */
     public $last_activity_at;
 
+    /**
+     * @ORM\Column(type="string", length=255, nullable=true)
+     */
+    private $fcm_token;
+
     public function __construct()
     {
         $this->ownQuizzes = new ArrayCollection();
@@ -101,6 +112,7 @@ class User implements UserInterface
         $this->unlockedKeys = new ArrayCollection();
         $this->sharedKeys = new ArrayCollection();
         $this->following = new ArrayCollection();
+        $this->followedBy = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -394,6 +406,46 @@ class User implements UserInterface
     public function setLastActivityAt(?\DateTimeInterface $last_activity_at): self
     {
         $this->last_activity_at = $last_activity_at;
+
+        return $this;
+    }
+
+    public function getFcmToken(): ?string
+    {
+        return $this->fcm_token;
+    }
+
+    public function setFcmToken(?string $fcm_token): self
+    {
+        $this->fcm_token = $fcm_token;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|User[]
+     */
+    public function getFollowedBy(): Collection
+    {
+        return $this->followedBy;
+    }
+
+    public function addFollowedBy(User $followedBy): self
+    {
+        if (!$this->followedBy->contains($followedBy)) {
+            $this->followedBy[] = $followedBy;
+            $followedBy->addFollowing($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFollowedBy(User $followedBy): self
+    {
+        if ($this->followedBy->contains($followedBy)) {
+            $this->followedBy->removeElement($followedBy);
+            $followedBy->removeFollowing($this);
+        }
 
         return $this;
     }

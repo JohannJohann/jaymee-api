@@ -55,6 +55,7 @@ class UserController extends AbstractController
             $newUser->setSalt('');
             $newUser->setPassword( $this->defaultEncoder->encodePassword($request->request->get("password"), ''));
             $newUser->setRoles(["ROLE_USER"]);
+            $newUser->setFcmToken($request->request->get("fcm_token"));
 
             $em->persist($newUser);
 
@@ -96,6 +97,7 @@ class UserController extends AbstractController
 
         $attempt = $this->defaultEncoder->encodePassword($request->request->get("_password"), $user->getSalt());
         if($attempt == $user->getPassword()){
+            $user->setFcmToken($request->request->get("fcm_token"));
             $token = $this->randomString(100);
             $user->setToken($token);
             $em->flush();
@@ -257,6 +259,27 @@ class UserController extends AbstractController
         });
 
         return new JsonResponse(array_slice($following, 0, 10));
+    }
+
+    
+    /**
+     * @Route("/fcm_refresh", name="fcm_refresh_token", methods={"POST"})
+     */
+    public function refreshFcmToken(Request $request){        
+        $uRepository = $em->getRepository(User::class);
+        $token = $request->headers->get('Authorization');
+        $user = $uRepository->findOneByToken($token);
+
+        $user =  Auth::user();
+        $fcm_token = $request->input("fcm_token");
+        if(!is_null($fcm_token)){
+            $user->setFcmToken($fcm_token);
+            $user->save();
+        }
+
+        $response = new JsonResponse();
+        $response->setData(array("success"=>true));
+        return $response;
     }
 
     // UTILS
