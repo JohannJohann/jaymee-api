@@ -46,7 +46,7 @@ class ImageController extends AbstractController
         $photo = $request->files->get('photo');
         $newName = $user->getId().'-'.((new \DateTime())->getTimestamp()).'.'.$photo->getClientOriginalExtension();
 
-        $photo->move(self::PRIVATE_PHOTO_STORAGE.'/'.$user->getId(), $newName);
+        $photo->move(getenv(PRIVATE_PHOTO_STORAGE).'/'.$user->getId(), $newName);
 
         $image = new Image();
         $image->setNumber($request->request->get('number'));
