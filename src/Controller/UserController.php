@@ -257,8 +257,12 @@ class UserController extends AbstractController
             }
             return ($a->getLastActivityAt() < $b->getLastActivityAt()) ? -1 : 1;
         });
+        $lastFollowing = array_slice($following, 0, 10);
+        foreach($lastFollowing as $user){
+            $user->getLastActivityAt()->now = new \DateTime();
+        }
 
-        return new JsonResponse(array_slice($following, 0, 10));
+        return new JsonResponse($lastFollowing);
     }
 
     
