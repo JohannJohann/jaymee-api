@@ -46,7 +46,7 @@ class ImageController extends AbstractController
         $photo = $request->files->get('photo');
         $newName = $user->getId().'-'.((new \DateTime())->getTimestamp()).'.'.$photo->getClientOriginalExtension();
 
-        $photo->move(getenv(PRIVATE_PHOTO_STORAGE).'/'.$user->getId(), $newName);
+        $photo->move(getenv('PRIVATE_PHOTO_STORAGE').'/'.$user->getId(), $newName);
 
         $image = new Image();
         $image->setNumber($request->request->get('number'));
@@ -91,7 +91,7 @@ class ImageController extends AbstractController
                 $key->setQuantity($key->getQuantity() - $photo->getCost());
                 $photo->addViewedBy($user);
 
-                $imagePath = self::PRIVATE_PHOTO_STORAGE.$photo->getOwner()->getId().'/'.$photo->getFilename();
+                $imagePath = getenv('PRIVATE_PHOTO_STORAGE').$photo->getOwner()->getId().'/'.$photo->getFilename();
                 $image = base64_encode(file_get_contents($imagePath));
                 $em->flush();
                 return new JsonResponse(array('image' => $image));    
