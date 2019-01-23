@@ -91,7 +91,7 @@ class ImageController extends AbstractController
                 $key->setQuantity($key->getQuantity() - $photo->getCost());
                 $photo->addViewedBy($user);
 
-                $imagePath = getenv('PRIVATE_PHOTO_STORAGE').$photo->getOwner()->getId().'/'.$photo->getFilename();
+                $imagePath = getenv('PRIVATE_PHOTO_STORAGE').'/'.$photo->getOwner()->getId().'/'.$photo->getFilename();
                 $image = base64_encode(file_get_contents($imagePath));
                 $em->flush();
                 return new JsonResponse(array('image' => $image));    
