@@ -7,6 +7,11 @@ user_routes_preflight_validation:
     controller: App\Controller\DefaultController::validatePreflight
     methods:    [OPTIONS]
 
+user_isAbo_preflight_validation:
+    path: /user/isAbo/{id}
+    controller: App\Controller\DefaultController::validatePreflight
+    methods:    [OPTIONS]
+
 quizz_routes_preflight_validation:
     path: /quizz/{anything}
     controller: App\Controller\DefaultController::validatePreflight

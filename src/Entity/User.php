@@ -35,7 +35,7 @@ class User implements UserInterface
 
     /**
      * @ORM\Column(type="string", length=255)
-     */
+     */ 
     private $password;
 
     /**
@@ -104,6 +104,12 @@ class User implements UserInterface
      * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $fcm_token;
+
+    
+    /**
+     * @ORM\Column(type="boolean", nullable=true)
+     */
+    public $has_privileges;
 
     public function __construct()
     {
@@ -446,6 +452,18 @@ class User implements UserInterface
             $this->followedBy->removeElement($followedBy);
             $followedBy->removeFollowing($this);
         }
+
+        return $this;
+    }
+
+    public function getHasPrivileges(): ?bool
+    {
+        return $this->has_privileges;
+    }
+
+    public function setHasPrivileges(?bool $has_privileges): self
+    {
+        $this->has_privileges = $has_privileges;
 
         return $this;
     }
