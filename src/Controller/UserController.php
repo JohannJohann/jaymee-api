@@ -56,7 +56,7 @@ class UserController extends AbstractController
             $newUser->setPassword( $this->defaultEncoder->encodePassword($request->request->get("password"), ''));
             $newUser->setRoles(["ROLE_USER"]);
             $newUser->setFcmToken($request->request->get("fcm_token"));
-            $user->setLastActivityAt(new \DateTime());
+            $newUser->setLastActivityAt(new \DateTime());
             $newUser->setHasPrivileges(false);
 
             $em->persist($newUser);
