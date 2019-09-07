@@ -105,11 +105,22 @@ class User implements UserInterface
      */
     private $fcm_token;
 
-    
     /**
      * @ORM\Column(type="boolean", nullable=true)
      */
     public $has_privileges;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\User", inversedBy="blockedBy")
+     * @ORM\JoinTable(name="user_blocks")
+     */
+    private $blocking;
+
+      /**
+     * @ORM\ManyToMany(targetEntity="App\Entity\User", mappedBy="blocking")
+     * @ORM\JoinTable(name="user_blocks")
+     */
+    public $blockedby;
 
     public function __construct()
     {
@@ -119,6 +130,8 @@ class User implements UserInterface
         $this->sharedKeys = new ArrayCollection();
         $this->following = new ArrayCollection();
         $this->followedBy = new ArrayCollection();
+        $this->blocking = new ArrayCollection();
+        $this->blockedby = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -466,5 +479,67 @@ class User implements UserInterface
         $this->has_privileges = $has_privileges;
 
         return $this;
+    }
+
+    /**
+     * @return Collection|User[]
+     */
+    public function getBlocking(): Collection
+    {
+        return $this->blocking;
+    }
+
+    public function addBlocking(User $blocking): self
+    {
+        if (!$this->blocking->contains($blocking)) {
+            $this->blocking[] = $blocking;
+        }
+
+        return $this;
+    }
+
+    public function removeBlocking(User $blocking): self
+    {
+        if ($this->blocking->contains($blocking)) {
+            $this->blocking->removeElement($blocking);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|User[]
+     */
+    public function getBlockedby(): Collection
+    {
+        return $this->blockedby;
+    }
+
+    public function addBlockedby(User $blockedby): self
+    {
+        if (!$this->blockedby->contains($blockedby)) {
+            $this->blockedby[] = $blockedby;
+            $blockedby->addBlocking($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBlockedby(User $blockedby): self
+    {
+        if ($this->blockedby->contains($blockedby)) {
+            $this->blockedby->removeElement($blockedby);
+            $blockedby->removeBlocking($this);
+        }
+
+        return $this;
+    }
+
+    public function isBlocking(User $user): bool {
+        return $this->blocking->contains($user);
+    }
+
+    public function isBlockedBy(User $user): bool {
+        return $this->blockedBy->contains($user);
     }
 }

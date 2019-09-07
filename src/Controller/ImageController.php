@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Entity\Image;
 use App\Entity\User;
 use App\Service\FirebasePushService;
+use App\Entity\Flag;
 
 /**
  * @Route("/photo")
@@ -101,5 +102,45 @@ class ImageController extends AbstractController
         } else {
             return new JsonResponse();
         }
+    }
+
+    /**
+     * @Route("/flag", name="flag", methods={"POST"})
+     */
+    public function flag(Request $request){
+        $em = $this->getDoctrine()->getManager();
+        $uRepository = $em->getRepository(User::class);
+        $iRepository = $em->getRepository(Image::class);
+        $fRepository = $em->getRepository(Flag::class);
+        $harsh_mode = getenv('HARSH_MODE');
+        $response = new JsonResponse([]);
+
+        $token = $request->headers->get('Authorization');
+        $user = $uRepository->findOneByToken($token);
+        $flaggedImage = $iRepository->find($request->request->get('photoId'));
+
+        if($flaggedImage){
+            $flag = new Flag();
+            $flag->setFlaggedBy($user);
+            $flag->setFlaggedContent($flaggedImage);
+            $flag->setFlaggedUser($flaggedImage->getOwner());
+            $flag->setCreatedAt( new \Datetime());
+
+            $em->persist($flag);
+            $em->flush();
+
+            if($harsh_mode == "1"){
+                $savedFlags = $fRepository->findByFlaggedContent($flaggedImage);
+                foreach($savedFlags as $flag) {
+                    $flag->setFlaggedContent(null);
+                }
+                $em->flush();
+                $em->remove($flaggedImage);
+                $em->flush();
+            }
+        }
+
+        $response->setData(array("success"=>true));
+        return $response;
     }
 }

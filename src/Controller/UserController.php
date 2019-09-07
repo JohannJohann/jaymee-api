@@ -214,12 +214,16 @@ class UserController extends AbstractController
     public function search(Request $request){
         $em = $this->getDoctrine()->getManager();
         $uRepository = $em->getRepository(User::class);
+        $token = $request->headers->get('Authorization');
+        $user = $uRepository->findOneByToken($token);
         $response = new JsonResponse([]);
 
         $username = $request->request->get('username');
-        $user = $uRepository->findBy(array('username'=>$username));
-        if($user){
-            $response->setData($user);
+        $results = array_filter($uRepository->findBy(array('username'=>$username)), function($result) use ($user) {
+            return !$result->isBlocking($user);
+        });
+        if($results){
+            $response->setData($results);
         }
         return $response;
     }
@@ -290,76 +294,109 @@ class UserController extends AbstractController
         $response->setData(array("success"=>true));
         return $response;
     }
-
+    
     /**
-     * @Route("/getAbos", name="get_abos", methods={"GET"})
+     * @Route("/block", name="block", methods={"POST"})
      */
-    public function getAbos(Request $request){ 
-        $response = new JsonResponse();
-        $response->setData(array("success"=>true));
-        return $response;
-    }
+    public function block(Request $request){
+        $em = $this->getDoctrine()->getManager();
+        $uRepository = $em->getRepository(User::class);
+        $response = new JsonResponse([]);
+        
+        $token = $request->headers->get('Authorization');
+        $user = $uRepository->findOneByToken($token);
+        $blockedUser = $uRepository->findOneByUsername($request->request->get('blockedUser'));
 
-    /**
-     * @Route("/setAbos", name="set_abos", methods={"POST"})
-     */
-    public function setAbos(Request $request){ 
-        $response = new JsonResponse();
-
-        $file = fopen('abos.txt', 'a');
-        $all = file_get_contents('abos.txt');
-        $rawdata = $request->request->get("data");
-        $matches = [];
-        preg_match_all('/"node":((?!node).)*"id":"([^"]*)"((?!node).)*("username":"[^"]*")((?!node).)*}/', $rawdata, $matches);
-        foreach($matches[2] as $key=>$value){
-            if(strpos($all, $value) === false) {
-                fwrite($file, $value."\n");
-                $all .= '-'.$value.'-';
+        if($blockedUser){
+            if($user->isBlocking($blockedUser)){
+                $response->setData(array(
+                    "success"=>false,
+                    "code"=>"user_already_blocked"
+                ));
+            } else {
+                $user->addBlocking($blockedUser);
+                $blockedUser->removeFollowing($user);
+                $em->flush();
+                $response->setData(array("success"=>true));
             }
+        } else {
+            $response->setData(array(
+                "success"=>false,
+                "code"=>"user_not_found"
+            ));
         }
-        fclose($file);
-
-        $response->setData(array("success"=>true));
         return $response;
     }
 
-    // A APPELER SEULEMENT LORS D'UN DESABONNEMENT
-    // Peut contenir des ids en trop, si la requete est ensuite rejetée en 403 par instagram
-    /**
-     * @Route("/isAbo/{id}", requirements={"id"="\d+"},  name="is_abo", methods={"GET"})
-     */
-    public function isAbo(Request $request, $id){ 
-        $response = new JsonResponse();
+    // /**
+    //  * @Route("/getAbos", name="get_abos", methods={"GET"})
+    //  */
+    // public function getAbos(Request $request){ 
+    //     $response = new JsonResponse();
+    //     $response->setData(array("success"=>true));
+    //     return $response;
+    // }
 
-        $file = fopen('abos.txt', 'r');
-        $content = stream_get_contents($file);
-        $currentSubs = explode("\n", $content);
-        $doesFollowMe = in_array($id, $currentSubs);
-        // On ajoute a la liste des abos car cette route n'est censée etre appelée que lors d'un désabo
-        if(!$doesFollowMe){
-            $file = fopen('desabos.txt', 'a');
-            fwrite($file, $id."\n");
-            fclose($file);
-        }
-        // Si non abo, on interdit le désabo
-        $response->setData(array("follows_me"=>$doesFollowMe));
-        return $response;
-    }
+    // /**
+    //  * @Route("/setAbos", name="set_abos", methods={"POST"})
+    //  */
+    // public function setAbos(Request $request){ 
+    //     $response = new JsonResponse();
 
-    /**
-     * @Route("/isDesabo/{id}", requirements={"id"="\d+"},  name="is_desabo", methods={"GET"})
-     */
-    public function isDesabo(Request $request, $id){
-        $file = fopen('desabos.txt', 'r');
-        $content = stream_get_contents($file);
-        $unfollowedList = explode("\n", $content);
-        $unfollowed_once = in_array($id, $unfollowedList);
+    //     $file = fopen('abos.txt', 'a');
+    //     $all = file_get_contents('abos.txt');
+    //     $rawdata = $request->request->get("data");
+    //     $matches = [];
+    //     preg_match_all('/"node":((?!node).)*"id":"([^"]*)"((?!node).)*("username":"[^"]*")((?!node).)*}/', $rawdata, $matches);
+    //     foreach($matches[2] as $key=>$value){
+    //         if(strpos($all, $value) === false) {
+    //             fwrite($file, $value."\n");
+    //             $all .= '-'.$value.'-';
+    //         }
+    //     }
+    //     fclose($file);
 
-        // Si deja abo avant, et unfollow, on interdit un nouvel abo ou demande d'abo
-        $response = new JsonResponse();
-        $response->setData(array("unfollowed_once"=>$unfollowed_once));
-        return $response;
-    }
+    //     $response->setData(array("success"=>true));
+    //     return $response;
+    // }
+
+    // // A APPELER SEULEMENT LORS D'UN DESABONNEMENT
+    // // Peut contenir des ids en trop, si la requete est ensuite rejetée en 403 par instagram
+    // /**
+    //  * @Route("/isAbo/{id}", requirements={"id"="\d+"},  name="is_abo", methods={"GET"})
+    //  */
+    // public function isAbo(Request $request, $id){ 
+    //     $response = new JsonResponse();
+
+    //     $file = fopen('abos.txt', 'r');
+    //     $content = stream_get_contents($file);
+    //     $currentSubs = explode("\n", $content);
+    //     $doesFollowMe = in_array($id, $currentSubs);
+    //     // On ajoute a la liste des abos car cette route n'est censée etre appelée que lors d'un désabo
+    //     if(!$doesFollowMe){
+    //         $file = fopen('desabos.txt', 'a');
+    //         fwrite($file, $id."\n");
+    //         fclose($file);
+    //     }
+    //     // Si non abo, on interdit le désabo
+    //     $response->setData(array("follows_me"=>$doesFollowMe));
+    //     return $response;
+    // }
+
+    // /**
+    //  * @Route("/isDesabo/{id}", requirements={"id"="\d+"},  name="is_desabo", methods={"GET"})
+    //  */
+    // public function isDesabo(Request $request, $id){
+    //     $file = fopen('desabos.txt', 'r');
+    //     $content = stream_get_contents($file);
+    //     $unfollowedList = explode("\n", $content);
+    //     $unfollowed_once = in_array($id, $unfollowedList);
+
+    //     // Si deja abo avant, et unfollow, on interdit un nouvel abo ou demande d'abo
+    //     $response = new JsonResponse();
+    //     $response->setData(array("unfollowed_once"=>$unfollowed_once));
+    //     return $response;
+    // }
 
 
     // UTILS
