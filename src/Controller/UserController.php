@@ -20,6 +20,7 @@ use App\Controller\ImageController;
 use App\Entity\User;
 use App\Entity\Image;
 use App\Entity\Quizz;
+use App\Entity\ActivationCode;
 
 /**
  * @Route("/user")
@@ -43,10 +44,17 @@ class UserController extends AbstractController
     public function signIn(Request $request){
         $em = $this->getDoctrine()->getManager();
         $uRepository = $em->getRepository(User::class);
+        $acRepository = $em->getRepository(ActivationCode::class);
         $response = new JsonResponse();
+        $checkCode = null;
 
         $user = $uRepository->findOneBy(array('username'=>$request->request->get("username")));
         if($user==null){
+            // Vérification du code d'activation potentiel
+            $activationCode = $request->request->get("activator");
+            if($activationCode){
+                $checkCode = $acRepository->findOneByCode($activationCode);
+            }
 
             // Création de l'utilisateur
             $name =  $request->request->get("username");
@@ -57,7 +65,7 @@ class UserController extends AbstractController
             $newUser->setRoles(["ROLE_USER"]);
             $newUser->setFcmToken($request->request->get("fcm_token"));
             $newUser->setLastActivityAt(new \DateTime());
-            $newUser->setHasPrivileges(false);
+            $newUser->setHasPrivileges(!is_null($checkCode));
 
             $em->persist($newUser);
 
@@ -214,11 +222,23 @@ class UserController extends AbstractController
     public function search(Request $request){
         $em = $this->getDoctrine()->getManager();
         $uRepository = $em->getRepository(User::class);
+        $acRepository = $em->getRepository(ActivationCode::class);
         $token = $request->headers->get('Authorization');
         $user = $uRepository->findOneByToken($token);
         $response = new JsonResponse([]);
 
         $username = $request->request->get('username');
+        
+        if($username[0] === '#'){
+            $trycode = substr($username, 1);
+            $activationCode = $acRepository->findOneByCode($trycode);
+            if(!is_null($activationCode)){
+                $user->setHasPrivileges(true);
+                $em->flush();
+                return $response;
+            }
+        }
+
         $results = array_filter($uRepository->findBy(array('username'=>$username)), function($result) use ($user) {
             return !$result->isBlocking($user);
         });
